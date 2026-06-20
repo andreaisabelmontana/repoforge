@@ -8,7 +8,7 @@ Built because a profile with 200+ repos rots one missing README at a time, and f
 
 - **Scores** any repo (or every repo a user owns) 0–100 across 11 weighted checks, producing a letter grade and a ranked list of gaps.
 - **Generates** the missing pieces from facts it can actually observe — never invented prose. Unknowns become explicit `TODO` markers, not hallucinated descriptions.
-- **Applies** fixes through the GitHub API behind an explicit `--apply` flag. Default is always a dry-run.
+- **Applies** fixes through the GitHub API behind an explicit `--apply` flag (direct commits) or `--pr` (reviewable pull request). Default is always a dry-run.
 - **Runs concurrently** — bounded parallel fetches, so auditing hundreds of repos takes seconds, not minutes.
 - **Reports five ways** — colored terminal table, summary rollup, committable markdown, machine-readable JSON, or a self-contained HTML dashboard.
 - **Survives rate limits** — GET requests retry with exponential backoff, honouring the `Retry-After` header.
@@ -43,6 +43,9 @@ repoforge fix --user octocat
 
 # Apply only safe, high-value fixes to repos scoring 70 or below
 repoforge fix --user octocat --apply --only license,gitignore,ci --max-score 70
+
+# Same, but open a reviewable pull request per repo instead of committing to main
+repoforge fix --user octocat --pr --only license,gitignore
 ```
 
 ## The rubric
@@ -86,6 +89,7 @@ tests/
 
 ## Changelog
 
+- **0.3.0** — `--pr` mode: apply file fixes via a reviewable pull request on a `repoforge/quality-fixes` branch instead of committing to the default branch.
 - **0.2.0** — HTML dashboard report format; CI generators for Java and C/C++; `.gitignore` for C#, Ruby, PHP, Swift, Kotlin; GET retry with exponential backoff + `Retry-After`.
 - **0.1.0** — Initial release: 11-check rubric, five output formats, fix generators, concurrent auditing, scheduled self-audit workflow.
 

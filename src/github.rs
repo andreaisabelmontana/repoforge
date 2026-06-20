@@ -258,6 +258,7 @@ impl GitHub {
     }
 
     /// Create a file at `path` (only used when the file is known to be absent, so no sha needed).
+    /// When `branch` is `Some`, the file is committed to that branch instead of the default.
     pub async fn put_file(
         &self,
         owner: &str,
@@ -265,13 +266,79 @@ impl GitHub {
         path: &str,
         message: &str,
         contents: &str,
+        branch: Option<&str>,
     ) -> Result<()> {
         let url = format!("{API}/repos/{owner}/{name}/contents/{path}");
         let encoded = base64::engine::general_purpose::STANDARD.encode(contents.as_bytes());
-        let body = serde_json::json!({ "message": message, "content": encoded });
+        let mut body = serde_json::json!({ "message": message, "content": encoded });
+        if let Some(b) = branch {
+            body["branch"] = serde_json::Value::String(b.to_string());
+        }
         check(self.client.put(&url).json(&body).send().await?).await?;
         Ok(())
     }
+
+    /// Current head commit SHA of `branch`.
+    pub async fn head_sha(&self, owner: &str, name: &str, branch: &str) -> Result<String> {
+        let url = format!("{API}/repos/{owner}/{name}/git/ref/heads/{branch}");
+        let resp = check(self.get_retry(&url).await?).await?;
+        let r: RefResp = resp.json().await.context("decoding ref")?;
+        Ok(r.object.sha)
+    }
+
+    /// Create `new_branch` pointing at `from_sha`. Tolerates "already exists" (422).
+    pub async fn create_branch(
+        &self,
+        owner: &str,
+        name: &str,
+        new_branch: &str,
+        from_sha: &str,
+    ) -> Result<()> {
+        let url = format!("{API}/repos/{owner}/{name}/git/refs");
+        let body = serde_json::json!({ "ref": format!("refs/heads/{new_branch}"), "sha": from_sha });
+        let resp = self.client.post(&url).json(&body).send().await?;
+        if resp.status() == StatusCode::UNPROCESSABLE_ENTITY {
+            return Ok(()); // branch already exists — reuse it
+        }
+        check(resp).await?;
+        Ok(())
+    }
+
+    /// Open a pull request and return its URL. Tolerates "already exists" (422).
+    pub async fn open_pr(
+        &self,
+        owner: &str,
+        name: &str,
+        head: &str,
+        base: &str,
+        title: &str,
+        body: &str,
+    ) -> Result<String> {
+        let url = format!("{API}/repos/{owner}/{name}/pulls");
+        let payload = serde_json::json!({ "title": title, "head": head, "base": base, "body": body });
+        let resp = self.client.post(&url).json(&payload).send().await?;
+        if resp.status() == StatusCode::UNPROCESSABLE_ENTITY {
+            return Ok(format!("https://github.com/{owner}/{name}/pulls (already open)"));
+        }
+        let resp = check(resp).await?;
+        let pr: PrResp = resp.json().await.context("decoding pull request")?;
+        Ok(pr.html_url)
+    }
+}
+
+#[derive(Deserialize)]
+struct RefResp {
+    object: RefObject,
+}
+
+#[derive(Deserialize)]
+struct RefObject {
+    sha: String,
+}
+
+#[derive(Deserialize)]
+struct PrResp {
+    html_url: String,
 }
 
 /// Turn a non-2xx response into a useful error carrying the status and a snippet of the body.

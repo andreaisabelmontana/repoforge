@@ -70,9 +70,14 @@ pub struct FixArgs {
     #[arg(long)]
     pub user: Option<String>,
 
-    /// Actually push changes. Without this, runs as a dry-run and only prints the plan.
+    /// Actually push changes. Without this (and without --pr), runs as a dry-run.
     #[arg(long)]
     pub apply: bool,
+
+    /// Apply file fixes via a reviewable pull request (branch `repoforge/quality-fixes`)
+    /// instead of committing to the default branch.
+    #[arg(long)]
+    pub pr: bool,
 
     /// Restrict to specific remedies, comma-separated:
     /// description,topics,readme,license,gitignore,ci

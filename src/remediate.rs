@@ -101,17 +101,39 @@ pub fn plan(snap: &Snapshot, audit: &RepoAudit, only: &Option<Vec<Remedy>>) -> V
 }
 
 /// Apply a planned action against GitHub. Caller decides whether to call this (dry-run vs apply).
-pub async fn apply(gh: &GitHub, owner: &str, name: &str, action: &Action) -> Result<()> {
+/// When `branch` is `Some`, file changes land on that branch (used by `--pr` mode); metadata
+/// changes (description/topics) always apply to the repo directly.
+pub async fn apply(
+    gh: &GitHub,
+    owner: &str,
+    name: &str,
+    action: &Action,
+    branch: Option<&str>,
+) -> Result<()> {
     match &action.kind {
         ActionKind::PutFile { path, contents } => {
-            gh.put_file(owner, name, path, &format!("chore: {}", action.summary), contents)
-                .await
+            gh.put_file(
+                owner,
+                name,
+                path,
+                &format!("chore: {}", action.summary),
+                contents,
+                branch,
+            )
+            .await
         }
         ActionKind::SetDescription(desc) => {
             gh.patch_repo(owner, name, serde_json::json!({ "description": desc }))
                 .await
         }
         ActionKind::SetTopics(topics) => gh.replace_topics(owner, name, topics).await,
+    }
+}
+
+impl ActionKind {
+    /// Whether this change touches files (vs repo metadata). Only file changes can go in a PR.
+    pub fn is_file(&self) -> bool {
+        matches!(self, ActionKind::PutFile { .. })
     }
 }
 

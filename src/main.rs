@@ -157,36 +157,97 @@ async fn fix_cmd(gh: &GitHub, cfg: &Config, concurrency: usize, args: FixArgs) -
         }
         touched += 1;
         let (owner, name) = (snap.repo.owner.login.as_str(), snap.repo.name.as_str());
+        let base = snap.repo.default_branch.as_str();
         println!("\n{} ({}/100, {})", snap.repo.full_name.bold(), a.score, a.grade);
+
+        // In --pr mode, set up a working branch for the file changes up front.
+        let has_file_changes = actions.iter().any(|x| x.kind.is_file());
+        let branch = if args.pr && has_file_changes {
+            match setup_branch(gh, owner, name, base).await {
+                Ok(b) => Some(b),
+                Err(e) => {
+                    println!("  {} prepare branch: {e}", "failed".red());
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
         for action in &actions {
             planned += 1;
-            if args.apply {
-                match remediate::apply(gh, owner, name, action).await {
-                    Ok(()) => {
-                        applied += 1;
-                        println!("  {} {}", "applied".green(), action.summary);
-                    }
-                    Err(e) => println!("  {} {}: {e}", "failed".red(), action.summary),
-                }
-            } else {
+            if !args.apply && !args.pr {
                 println!("  {} {}", "would".cyan(), action.summary);
+                continue;
+            }
+            // File changes go to the PR branch (if any); metadata always applies directly.
+            let target = if action.kind.is_file() {
+                branch.as_deref()
+            } else {
+                None
+            };
+            match remediate::apply(gh, owner, name, action, target).await {
+                Ok(()) => {
+                    applied += 1;
+                    println!("  {} {}", "applied".green(), action.summary);
+                }
+                Err(e) => println!("  {} {}: {e}", "failed".red(), action.summary),
+            }
+        }
+
+        // Open the PR once the branch carries the file changes.
+        if let Some(b) = &branch {
+            let body = pr_body(&actions);
+            match gh
+                .open_pr(owner, name, b, base, "chore: repoforge quality fixes", &body)
+                .await
+            {
+                Ok(url) => println!("  {} {url}", "PR →".green().bold()),
+                Err(e) => println!("  {} open PR: {e}", "failed".red()),
             }
         }
     }
 
-    if args.apply {
+    let mode = if args.pr {
+        "via pull request"
+    } else if args.apply {
+        "applied directly"
+    } else {
+        "dry-run"
+    };
+    if args.apply || args.pr {
         println!(
-            "\n{} {applied}/{planned} change(s) applied across {touched} repo(s)",
+            "\n{} {applied}/{planned} change(s) {mode} across {touched} repo(s)",
             "done:".green().bold()
         );
     } else {
         println!(
-            "\n{} {planned} change(s) across {touched} repo(s). Re-run with {} to apply.",
+            "\n{} {planned} change(s) across {touched} repo(s). Re-run with {} or {} to apply.",
             "dry-run:".cyan().bold(),
-            "--apply".bold()
+            "--apply".bold(),
+            "--pr".bold()
         );
     }
     Ok(())
+}
+
+/// Create (or reuse) the `repoforge/quality-fixes` branch off `base`, returning its name.
+async fn setup_branch(gh: &GitHub, owner: &str, name: &str, base: &str) -> Result<String> {
+    let sha = gh.head_sha(owner, name, base).await?;
+    let branch = "repoforge/quality-fixes";
+    gh.create_branch(owner, name, branch, &sha).await?;
+    Ok(branch.to_string())
+}
+
+/// Markdown body listing the file changes a PR introduces.
+fn pr_body(actions: &[remediate::Action]) -> String {
+    let mut s = String::from(
+        "Automated, additive quality fixes. Each file is generated from facts already in the repo.\n\n",
+    );
+    for a in actions.iter().filter(|x| x.kind.is_file()) {
+        s.push_str(&format!("- {}\n", a.summary));
+    }
+    s
 }
 
 /// Token precedence: explicit flag → $GITHUB_TOKEN → $GH_TOKEN → `gh auth token`.
