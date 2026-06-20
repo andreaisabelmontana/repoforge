@@ -4,7 +4,7 @@ Audit GitHub repositories against a quality rubric and auto-generate the pieces 
 
 Built because a profile with 200+ repos rots one missing README at a time, and fixing that by hand doesn't scale. repoforge makes "every repo meets a bar" a command instead of a chore.
 
-> Proven at scale: a single `fix --apply` run added an MIT license and a language-appropriate `.gitignore` to **162 repositories (279 files) in one pass, with zero failures** — the kind of fleet-wide cleanup that is otherwise a weekend of copy-paste.
+> Proven at scale: a single `fix --apply` run added an MIT license and a language-appropriate `.gitignore` to **162 repositories (279 files) in one pass, with zero failures**. Across a 206-repo account that lifted the average score **51.8 → 65.0**, dropped failing (F) repos **134 → 96**, and took *license* and *.gitignore* off the most-common-gaps list entirely — the kind of fleet-wide cleanup that is otherwise a weekend of copy-paste.
 
 ## What it does
 
