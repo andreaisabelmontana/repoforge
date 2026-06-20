@@ -114,6 +114,7 @@ async fn audit_cmd(gh: &GitHub, cfg: &Config, concurrency: usize, args: AuditArg
         Format::Summary => report::summary(&audits),
         Format::Json => report::json(&audits),
         Format::Markdown => report::markdown(&audits),
+        Format::Html => report::html(&audits),
     };
 
     if let Some(path) = args.output {

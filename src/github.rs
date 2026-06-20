@@ -8,6 +8,7 @@ use anyhow::{anyhow, Context, Result};
 use base64::Engine;
 use reqwest::{header, Client, StatusCode};
 use serde::Deserialize;
+use std::time::Duration;
 
 const API: &str = "https://api.github.com";
 const UA: &str = concat!("repoforge/", env!("CARGO_PKG_VERSION"));
@@ -134,7 +135,7 @@ impl GitHub {
         let mut page = 1u32;
         loop {
             let url = format!("{API}/users/{user}/repos?per_page=100&type=owner&sort=pushed&page={page}");
-            let resp = self.client.get(&url).send().await?;
+            let resp = self.get_retry(&url).await?;
             let resp = check(resp).await?;
             let batch: Vec<Repo> = resp.json().await.context("decoding repo list")?;
             let n = batch.len();
@@ -153,8 +154,40 @@ impl GitHub {
 
     pub async fn get_repo(&self, owner: &str, name: &str) -> Result<Repo> {
         let url = format!("{API}/repos/{owner}/{name}");
-        let resp = check(self.client.get(&url).send().await?).await?;
+        let resp = check(self.get_retry(&url).await?).await?;
         resp.json().await.context("decoding repo")
+    }
+
+    /// GET with retry + backoff on 429 / 5xx / transport errors. Returns the raw (post-retry)
+    /// response so callers can still inspect 404/409 statuses themselves.
+    async fn get_retry(&self, url: &str) -> Result<reqwest::Response> {
+        const MAX: u32 = 4;
+        let mut attempt = 0u32;
+        loop {
+            attempt += 1;
+            match self.client.get(url).send().await {
+                Ok(resp) => {
+                    let s = resp.status();
+                    let retryable = s == StatusCode::TOO_MANY_REQUESTS || s.is_server_error();
+                    if retryable && attempt < MAX {
+                        let secs = resp
+                            .headers()
+                            .get("retry-after")
+                            .and_then(|v| v.to_str().ok())
+                            .and_then(|v| v.parse::<u64>().ok())
+                            .unwrap_or(1u64 << (attempt - 1)); // 1, 2, 4 seconds
+                        tokio::time::sleep(Duration::from_secs(secs.min(30))).await;
+                        continue;
+                    }
+                    return Ok(resp);
+                }
+                Err(_) if attempt < MAX => {
+                    tokio::time::sleep(Duration::from_millis(300 * attempt as u64)).await;
+                    continue;
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
     }
 
     /// Build a full [`Snapshot`]: metadata + recursive file tree + README contents.
@@ -175,7 +208,7 @@ impl GitHub {
 
     async fn tree(&self, owner: &str, name: &str, branch: &str) -> Result<(Vec<String>, bool)> {
         let url = format!("{API}/repos/{owner}/{name}/git/trees/{branch}?recursive=1");
-        let resp = self.client.get(&url).send().await?;
+        let resp = self.get_retry(&url).await?;
         if resp.status() == StatusCode::NOT_FOUND || resp.status() == StatusCode::CONFLICT {
             return Ok((Vec::new(), false)); // empty repo
         }
@@ -192,7 +225,7 @@ impl GitHub {
 
     async fn readme(&self, owner: &str, name: &str) -> Result<Option<String>> {
         let url = format!("{API}/repos/{owner}/{name}/readme");
-        let resp = self.client.get(&url).send().await?;
+        let resp = self.get_retry(&url).await?;
         if resp.status() == StatusCode::NOT_FOUND {
             return Ok(None);
         }

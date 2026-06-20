@@ -96,6 +96,7 @@ pub enum Format {
     Summary,
     Json,
     Markdown,
+    Html,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]

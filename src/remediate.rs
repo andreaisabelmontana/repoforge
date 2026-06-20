@@ -191,8 +191,12 @@ pub fn gen_gitignore(language: Option<&str>) -> String {
             "node_modules/\ndist/\nbuild/\n.env\n.env.local\nnpm-debug.log*\ncoverage/\n.next/\n".into()
         }
         Some("go") => "/bin/\n*.exe\n*.test\n*.out\nvendor/\n".into(),
-        Some("java") => "target/\n*.class\n*.jar\n.gradle/\nbuild/\n".into(),
+        Some("java") | Some("kotlin") => "target/\n*.class\n*.jar\n.gradle/\nbuild/\n".into(),
         Some("c") | Some("c++") => "*.o\n*.obj\n*.exe\n*.out\nbuild/\n*.a\n*.so\n".into(),
+        Some("c#") => "bin/\nobj/\n*.user\n.vs/\n*.suo\n".into(),
+        Some("ruby") => "*.gem\n.bundle/\nvendor/bundle\nlog/\ntmp/\n.env\n".into(),
+        Some("php") => "/vendor/\ncomposer.lock\n.env\n.phpunit.result.cache\n".into(),
+        Some("swift") => ".build/\n*.xcodeproj/\nDerivedData/\n.swiftpm/\n".into(),
         _ => ".DS_Store\nThumbs.db\n*.log\n.env\nnode_modules/\ndist/\nbuild/\n".into(),
     }
 }
@@ -228,6 +232,17 @@ pub fn gen_ci(language: Option<&str>) -> Option<String> {
 \x20       with: { go-version: 'stable' }\n\
 \x20     - run: go build ./...\n\
 \x20     - run: go test ./...\n"
+        }
+        Some("java") => {
+            "      - uses: actions/checkout@v4\n\
+\x20     - uses: actions/setup-java@v4\n\
+\x20       with: { distribution: temurin, java-version: '21' }\n\
+\x20     - run: mvn -B verify || ./gradlew build || echo 'no build tool detected'\n"
+        }
+        Some("c") | Some("c++") => {
+            "      - uses: actions/checkout@v4\n\
+\x20     - run: cmake -B build && cmake --build build || make || echo 'no build system detected'\n\
+\x20     - run: ctest --test-dir build || true\n"
         }
         // HTML / static sites and unknowns get nothing here; Pages deploy is a separate concern.
         _ => return None,

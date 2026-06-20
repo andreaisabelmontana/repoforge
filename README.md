@@ -10,6 +10,8 @@ Built because a profile with 200+ repos rots one missing README at a time, and f
 - **Generates** the missing pieces from facts it can actually observe — never invented prose. Unknowns become explicit `TODO` markers, not hallucinated descriptions.
 - **Applies** fixes through the GitHub API behind an explicit `--apply` flag. Default is always a dry-run.
 - **Runs concurrently** — bounded parallel fetches, so auditing hundreds of repos takes seconds, not minutes.
+- **Reports five ways** — colored terminal table, summary rollup, committable markdown, machine-readable JSON, or a self-contained HTML dashboard.
+- **Survives rate limits** — GET requests retry with exponential backoff, honouring the `Retry-After` header.
 
 ## Install
 
@@ -29,6 +31,9 @@ repoforge audit --user octocat
 
 # Grade specific repos, emit a committable markdown report
 repoforge audit octocat/hello octocat/spoon-knife --format markdown --output report.md
+
+# Self-contained HTML dashboard (open in a browser or publish to Pages)
+repoforge audit --user octocat --format html --output dashboard.html
 
 # Machine-readable
 repoforge audit --user octocat --format json
@@ -60,7 +65,7 @@ Weights and grade thresholds are overridable in `repoforge.toml` — they need n
 
 ## What the fixer will and won't do
 
-Auto-generated: README scaffold, MIT license, language-aware `.gitignore`, language-aware CI workflow, derived topics, and a placeholder description. Everything is grounded in observed facts (language, file tree, owner) so the tool never fabricates claims about what a project does.
+Auto-generated: README scaffold, MIT license, language-aware `.gitignore` (Rust, Python, JS/TS, Go, Java/Kotlin, C/C++, C#, Ruby, PHP, Swift), language-aware CI workflow (Rust, Python, JS/TS, Go, Java, C/C++), derived topics, and a placeholder description. Everything is grounded in observed facts (language, file tree, owner) so the tool never fabricates claims about what a project does.
 
 Not auto-generated: tests, real activity, and human-written overview prose — those are flagged but left to you, because faking them would be exactly the "fluff" this tool exists to remove.
 
@@ -78,6 +83,11 @@ src/
 tests/
   logic.rs       scoring + generators, network-free
 ```
+
+## Changelog
+
+- **0.2.0** — HTML dashboard report format; CI generators for Java and C/C++; `.gitignore` for C#, Ruby, PHP, Swift, Kotlin; GET retry with exponential backoff + `Retry-After`.
+- **0.1.0** — Initial release: 11-check rubric, five output formats, fix generators, concurrent auditing, scheduled self-audit workflow.
 
 ## License
 

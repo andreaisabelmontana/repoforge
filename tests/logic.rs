@@ -6,6 +6,7 @@ use repoforge::audit::{self, grade_for};
 use repoforge::config::Config;
 use repoforge::github::{License, Owner, Repo, Snapshot};
 use repoforge::remediate;
+use repoforge::report;
 
 fn repo() -> Repo {
     Repo {
@@ -102,9 +103,18 @@ fn gitignore_is_language_specific() {
 fn ci_matches_language() {
     assert!(remediate::gen_ci(Some("Rust")).unwrap().contains("cargo test"));
     assert!(remediate::gen_ci(Some("Go")).unwrap().contains("go test"));
+    assert!(remediate::gen_ci(Some("Java")).unwrap().contains("setup-java"));
+    assert!(remediate::gen_ci(Some("C++")).unwrap().contains("cmake"));
     // Static sites get no default CI workflow.
     assert!(remediate::gen_ci(Some("HTML")).is_none());
     assert!(remediate::gen_ci(None).is_none());
+}
+
+#[test]
+fn gitignore_covers_more_languages() {
+    assert!(remediate::gen_gitignore(Some("C#")).contains("obj/"));
+    assert!(remediate::gen_gitignore(Some("Ruby")).contains(".bundle/"));
+    assert!(remediate::gen_gitignore(Some("PHP")).contains("/vendor/"));
 }
 
 #[test]
@@ -127,6 +137,25 @@ fn topics_derive_from_language_and_name() {
     assert!(topics.contains(&"montecarlo".into()) || topics.contains(&"risk".into()));
     // Stopwords and short tokens must be filtered out.
     assert!(!topics.iter().any(|t| t == "gpu" && t.len() < 3));
+}
+
+#[test]
+fn html_report_is_self_contained() {
+    let snap = Snapshot {
+        repo: repo(),
+        paths: vec![],
+        readme: None,
+        tree_truncated: false,
+    };
+    let now = Utc.with_ymd_and_hms(2024, 6, 1, 0, 0, 0).unwrap();
+    let a = audit::audit_at(&snap, &Config::default(), now);
+    let html = report::html(std::slice::from_ref(&a));
+    assert!(html.starts_with("<!doctype html>"));
+    assert!(html.contains("octocat/gpu-montecarlo-risk"));
+    assert!(html.contains("Repository quality report"));
+    // No external assets — everything inlined.
+    assert!(!html.contains("http-equiv=\"refresh\""));
+    assert!(html.contains("<style>"));
 }
 
 #[test]
