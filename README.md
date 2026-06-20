@@ -2,7 +2,9 @@
 
 [![CI](https://github.com/andreaisabelmontana/repoforge/actions/workflows/ci.yml/badge.svg)](https://github.com/andreaisabelmontana/repoforge/actions/workflows/ci.yml)
 ![license: MIT](https://img.shields.io/badge/license-MIT-blue)
-![repoforge quality](https://img.shields.io/badge/repoforge-A%20%2895%29-brightgreen)
+![repoforge quality](https://img.shields.io/badge/repoforge-A%20%28100%29-brightgreen)
+
+**[Live quality dashboard →](https://andreaisabelmontana.github.io/repoforge/)** (auto-refreshed weekly by the self-audit workflow)
 
 Audit GitHub repositories against a quality rubric and auto-generate the pieces they're missing — README, license, `.gitignore`, CI workflow, description, and topics. One read-only command grades an entire account; one `--apply` flag fixes it.
 
@@ -99,6 +101,7 @@ tests/
 
 ## Changelog
 
+- **0.6.1** — Live GitHub Pages dashboard (`docs/index.html`); the scheduled self-audit workflow now refreshes both the markdown report and the HTML dashboard each week.
 - **0.6.0** — `badge` command: emit a ready-to-paste shields.io quality badge (markdown) or endpoint JSON for one or many repos. (repoforge grades itself **A**.)
 - **0.5.0** — Writes (PUT/PATCH/POST) now retry with backoff on 429, 5xx, and GitHub's 403 + `Retry-After` *secondary* rate-limit response, so large `fix` sweeps don't half-fail.
 - **0.4.0** — `--holder` flag to set the LICENSE copyright holder (defaults to the repo owner's login).
