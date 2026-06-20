@@ -1,6 +1,6 @@
 [package]
 name = "repoforge"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.74"
 description = "Audit GitHub repositories against a quality rubric and auto-generate the missing pieces (README, license, CI, .gitignore, topics)."

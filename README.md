@@ -4,6 +4,8 @@ Audit GitHub repositories against a quality rubric and auto-generate the pieces 
 
 Built because a profile with 200+ repos rots one missing README at a time, and fixing that by hand doesn't scale. repoforge makes "every repo meets a bar" a command instead of a chore.
 
+> Proven at scale: a single `fix --apply` run added an MIT license and a language-appropriate `.gitignore` to **162 repositories (279 files) in one pass, with zero failures** — the kind of fleet-wide cleanup that is otherwise a weekend of copy-paste.
+
 ## What it does
 
 - **Scores** any repo (or every repo a user owns) 0–100 across 11 weighted checks, producing a letter grade and a ranked list of gaps.
@@ -89,6 +91,7 @@ tests/
 
 ## Changelog
 
+- **0.4.0** — `--holder` flag to set the LICENSE copyright holder (defaults to the repo owner's login).
 - **0.3.0** — `--pr` mode: apply file fixes via a reviewable pull request on a `repoforge/quality-fixes` branch instead of committing to the default branch.
 - **0.2.0** — HTML dashboard report format; CI generators for Java and C/C++; `.gitignore` for C#, Ruby, PHP, Swift, Kotlin; GET retry with exponential backoff + `Retry-After`.
 - **0.1.0** — Initial release: 11-check rubric, five output formats, fix generators, concurrent auditing, scheduled self-audit workflow.

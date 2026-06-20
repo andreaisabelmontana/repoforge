@@ -25,8 +25,14 @@ pub enum ActionKind {
 }
 
 /// Build the list of actions that would resolve a repo's fixable gaps, optionally filtered to
-/// a subset of remedies (`only`).
-pub fn plan(snap: &Snapshot, audit: &RepoAudit, only: &Option<Vec<Remedy>>) -> Vec<Action> {
+/// a subset of remedies (`only`). `holder` overrides the license copyright holder (defaults to
+/// the repo owner's login).
+pub fn plan(
+    snap: &Snapshot,
+    audit: &RepoAudit,
+    only: &Option<Vec<Remedy>>,
+    holder: Option<&str>,
+) -> Vec<Action> {
     let mut actions = Vec::new();
     for gap in audit.fixable_gaps() {
         if let Some(filter) = only {
@@ -47,7 +53,7 @@ pub fn plan(snap: &Snapshot, audit: &RepoAudit, only: &Option<Vec<Remedy>>) -> V
                 remedy: Remedy::License,
                 kind: ActionKind::PutFile {
                     path: "LICENSE".into(),
-                    contents: gen_mit(&snap.repo.owner.login),
+                    contents: gen_mit(holder.unwrap_or(&snap.repo.owner.login)),
                 },
                 summary: "add MIT LICENSE".into(),
             }),

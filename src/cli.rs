@@ -88,6 +88,10 @@ pub struct FixArgs {
     #[arg(long, default_value_t = 100)]
     pub max_score: u32,
 
+    /// Copyright holder for generated LICENSE files (defaults to the repo owner's login).
+    #[arg(long)]
+    pub holder: Option<String>,
+
     #[arg(long)]
     pub include_forks: bool,
 

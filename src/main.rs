@@ -151,7 +151,7 @@ async fn fix_cmd(gh: &GitHub, cfg: &Config, concurrency: usize, args: FixArgs) -
         if a.score > args.max_score {
             continue;
         }
-        let actions = remediate::plan(snap, &a, &only);
+        let actions = remediate::plan(snap, &a, &only, args.holder.as_deref());
         if actions.is_empty() {
             continue;
         }
