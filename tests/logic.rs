@@ -2,10 +2,10 @@
 //! No network — everything runs against in-memory fixtures.
 
 use chrono::{TimeZone, Utc};
-use repoforge::audit::{self, grade_for};
+use repoforge::audit::{self, grade_for, Remedy};
 use repoforge::config::Config;
 use repoforge::github::{License, Owner, Repo, Snapshot};
-use repoforge::remediate;
+use repoforge::remediate::{self, ActionKind};
 use repoforge::report;
 
 fn repo() -> Repo {
@@ -137,6 +137,35 @@ fn topics_derive_from_language_and_name() {
     assert!(topics.contains(&"montecarlo".into()) || topics.contains(&"risk".into()));
     // Stopwords and short tokens must be filtered out.
     assert!(!topics.iter().any(|t| t == "gpu" && t.len() < 3));
+}
+
+#[test]
+fn topics_fix_preserves_existing() {
+    let mut r = repo();
+    r.topics = vec!["hand-picked".into()]; // 1 topic -> fails the >=3 check, but must not be lost
+    let snap = Snapshot {
+        repo: r,
+        paths: vec!["Cargo.toml".into()],
+        readme: None,
+        tree_truncated: false,
+    };
+    let now = Utc.with_ymd_and_hms(2024, 6, 1, 0, 0, 0).unwrap();
+    let a = audit::audit_at(&snap, &Config::default(), now);
+    let actions = remediate::plan(&snap, &a, &Some(vec![Remedy::Topics]), None);
+    let topics_action = actions
+        .iter()
+        .find(|x| matches!(x.remedy, Remedy::Topics))
+        .expect("a topics action");
+    match &topics_action.kind {
+        ActionKind::SetTopics(ts) => {
+            assert!(
+                ts.contains(&"hand-picked".to_string()),
+                "existing topic must survive"
+            );
+            assert!(ts.len() > 1, "should add derived topics too");
+        }
+        _ => panic!("expected SetTopics"),
+    }
 }
 
 #[test]

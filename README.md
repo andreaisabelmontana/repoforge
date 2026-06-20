@@ -104,6 +104,7 @@ tests/
 
 ## Changelog
 
+- **0.7.1** — The topics fix now *merges* with existing topics instead of replacing them, so applying it can never delete tags you set by hand.
 - **0.7.0** — `init` command: create a new repository already scaffolded to an A grade (README, LICENSE, language-aware `.gitignore` + CI, derived topics, description) in one shot.
 - **0.6.1** — Live GitHub Pages dashboard (`docs/index.html`); the scheduled self-audit workflow now refreshes both the markdown report and the HTML dashboard each week.
 - **0.6.0** — `badge` command: emit a ready-to-paste shields.io quality badge (markdown) or endpoint JSON for one or many repos. (repoforge grades itself **A**.)

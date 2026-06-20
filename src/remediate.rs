@@ -91,8 +91,16 @@ pub fn plan(
                 }
             }
             Remedy::Topics => {
-                let topics = suggest_topics(snap);
-                if !topics.is_empty() {
+                // Merge onto existing topics — the topics API replaces the whole set, so we must
+                // carry the current ones forward or we'd silently delete the user's tags.
+                let mut topics = snap.repo.topics.clone();
+                for t in suggest_topics(snap) {
+                    if !topics.contains(&t) {
+                        topics.push(t);
+                    }
+                }
+                topics.truncate(20); // GitHub caps a repo at 20 topics
+                if topics.len() > snap.repo.topics.len() {
                     actions.push(Action {
                         remedy: Remedy::Topics,
                         kind: ActionKind::SetTopics(topics.clone()),
