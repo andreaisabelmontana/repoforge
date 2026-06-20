@@ -4,7 +4,7 @@
 mod cli;
 
 use anyhow::{anyhow, Context, Result};
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use cli::{AuditArgs, BadgeArgs, Cli, Command, FixArgs, Format, InitArgs};
 use colored::Colorize;
 use futures::stream::{self, StreamExt};
@@ -24,6 +24,14 @@ async fn main() {
 
 async fn run() -> Result<()> {
     let cli = Cli::parse();
+
+    // Offline subcommand — no token or network needed, so handle it before building the client.
+    if let Command::Completions { shell } = &cli.command {
+        let mut cmd = Cli::command();
+        clap_complete::generate(*shell, &mut cmd, "repoforge", &mut std::io::stdout());
+        return Ok(());
+    }
+
     let cfg = Config::load_or_default(cli.config.as_deref())?;
     let token = resolve_token(cli.token.clone());
     if token.is_none() {
@@ -39,6 +47,7 @@ async fn run() -> Result<()> {
         Command::Fix(args) => fix_cmd(&gh, &cfg, cli.concurrency, args).await,
         Command::Badge(args) => badge_cmd(&gh, &cfg, cli.concurrency, args).await,
         Command::Init(args) => init_cmd(&gh, args).await,
+        Command::Completions { .. } => unreachable!("handled before client setup"),
     }
 }
 

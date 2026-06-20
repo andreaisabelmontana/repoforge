@@ -1,6 +1,7 @@
 //! Command-line surface, defined with `clap`'s derive API.
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap_complete::Shell;
 use repoforge::audit::Remedy;
 
 #[derive(Parser, Debug)]
@@ -37,6 +38,11 @@ pub enum Command {
     Badge(BadgeArgs),
     /// Create a new repository scaffolded straight to an A grade (README, LICENSE, CI, .gitignore, topics).
     Init(InitArgs),
+    /// Print a shell completion script (bash, zsh, fish, powershell, elvish) to stdout.
+    Completions {
+        /// Target shell.
+        shell: Shell,
+    },
 }
 
 #[derive(Args, Debug)]

@@ -53,6 +53,9 @@ repoforge badge octocat/hello --json   # endpoint schema, for a self-updating ba
 # Create a brand-new repo already scaffolded to an A grade
 repoforge init my-new-tool --language rust --description "A small fast thing"
 
+# Shell completions
+repoforge completions zsh > ~/.zfunc/_repoforge
+
 # See exactly what would change — nothing is pushed
 repoforge fix --user octocat
 
@@ -104,6 +107,7 @@ tests/
 
 ## Changelog
 
+- **0.8.0** — `completions` command: generate shell completion scripts (bash, zsh, fish, powershell, elvish).
 - **0.7.1** — The topics fix now *merges* with existing topics instead of replacing them, so applying it can never delete tags you set by hand.
 - **0.7.0** — `init` command: create a new repository already scaffolded to an A grade (README, LICENSE, language-aware `.gitignore` + CI, derived topics, description) in one shot.
 - **0.6.1** — Live GitHub Pages dashboard (`docs/index.html`); the scheduled self-audit workflow now refreshes both the markdown report and the HTML dashboard each week.
