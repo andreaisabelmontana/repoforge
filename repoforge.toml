@@ -1,0 +1,25 @@
+# Example repoforge configuration. Drop this in a repo's root (or pass --config) to tune the
+# rubric. Every field is optional; omitted fields fall back to the built-in defaults shown here.
+
+readme_min_chars = 800
+min_topics = 3
+
+[weights]
+# Need not sum to 100 — scores are normalised against the total.
+description  = 8
+topics       = 7
+readme       = 12
+readme_depth = 13
+license      = 12
+gitignore    = 6
+ci           = 12
+tests        = 10
+homepage     = 5
+activity     = 8
+structure    = 7
+
+[thresholds]
+a = 90
+b = 80
+c = 70
+d = 60

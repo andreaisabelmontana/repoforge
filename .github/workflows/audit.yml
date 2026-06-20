@@ -1,0 +1,36 @@
+name: Self-audit
+
+# Re-grades the whole account on a schedule and commits the latest report to docs/REPORT.md,
+# so the quality dashboard stays current with zero manual effort.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --release
+      - name: Run audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p docs
+          ./target/release/repoforge audit --user "${GITHUB_REPOSITORY_OWNER}" \
+            --format markdown --output docs/REPORT.md
+      - name: Commit report
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/REPORT.md
+          git commit -m "chore: refresh quality report" || echo "no changes"
+          git push
