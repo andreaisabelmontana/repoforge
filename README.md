@@ -13,7 +13,7 @@ Built because a profile with 200+ repos rots one missing README at a time, and f
 - **Applies** fixes through the GitHub API behind an explicit `--apply` flag (direct commits) or `--pr` (reviewable pull request). Default is always a dry-run.
 - **Runs concurrently** — bounded parallel fetches, so auditing hundreds of repos takes seconds, not minutes.
 - **Reports five ways** — colored terminal table, summary rollup, committable markdown, machine-readable JSON, or a self-contained HTML dashboard.
-- **Survives rate limits** — GET requests retry with exponential backoff, honouring the `Retry-After` header.
+- **Survives rate limits** — reads *and* writes retry with exponential backoff, honouring the `Retry-After` header (including GitHub's secondary-limit 403 on rapid writes).
 
 ## Install
 
@@ -91,6 +91,7 @@ tests/
 
 ## Changelog
 
+- **0.5.0** — Writes (PUT/PATCH/POST) now retry with backoff on 429, 5xx, and GitHub's 403 + `Retry-After` *secondary* rate-limit response, so large `fix` sweeps don't half-fail.
 - **0.4.0** — `--holder` flag to set the LICENSE copyright holder (defaults to the repo owner's login).
 - **0.3.0** — `--pr` mode: apply file fixes via a reviewable pull request on a `repoforge/quality-fixes` branch instead of committing to the default branch.
 - **0.2.0** — HTML dashboard report format; CI generators for Java and C/C++; `.gitignore` for C#, Ruby, PHP, Swift, Kotlin; GET retry with exponential backoff + `Retry-After`.

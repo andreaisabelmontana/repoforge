@@ -158,25 +158,38 @@ impl GitHub {
         resp.json().await.context("decoding repo")
     }
 
-    /// GET with retry + backoff on 429 / 5xx / transport errors. Returns the raw (post-retry)
-    /// response so callers can still inspect 404/409 statuses themselves.
+    /// GET with retry + backoff. Returns the raw (post-retry) response so callers can still
+    /// inspect 404/409 statuses themselves.
     async fn get_retry(&self, url: &str) -> Result<reqwest::Response> {
-        const MAX: u32 = 4;
+        self.send_retry(|| self.client.get(url)).await
+    }
+
+    /// Send a request with retry + exponential backoff on transient failures: 429, 5xx, and the
+    /// 403 + `Retry-After` shape GitHub uses for *secondary* rate limits on writes. `build` is
+    /// called afresh each attempt because a `RequestBuilder` is consumed by `send`. Honours
+    /// `Retry-After` when present, otherwise backs off 1/2/4 seconds.
+    async fn send_retry<F>(&self, build: F) -> Result<reqwest::Response>
+    where
+        F: Fn() -> reqwest::RequestBuilder,
+    {
+        const MAX: u32 = 5;
         let mut attempt = 0u32;
         loop {
             attempt += 1;
-            match self.client.get(url).send().await {
+            match build().send().await {
                 Ok(resp) => {
                     let s = resp.status();
-                    let retryable = s == StatusCode::TOO_MANY_REQUESTS || s.is_server_error();
+                    let has_retry_after = resp.headers().contains_key("retry-after");
+                    let secondary = s == StatusCode::FORBIDDEN && has_retry_after;
+                    let retryable = s == StatusCode::TOO_MANY_REQUESTS || s.is_server_error() || secondary;
                     if retryable && attempt < MAX {
                         let secs = resp
                             .headers()
                             .get("retry-after")
                             .and_then(|v| v.to_str().ok())
                             .and_then(|v| v.parse::<u64>().ok())
-                            .unwrap_or(1u64 << (attempt - 1)); // 1, 2, 4 seconds
-                        tokio::time::sleep(Duration::from_secs(secs.min(30))).await;
+                            .unwrap_or(1u64 << (attempt - 1)); // 1, 2, 4, 8 seconds
+                        tokio::time::sleep(Duration::from_secs(secs.min(60))).await;
                         continue;
                     }
                     return Ok(resp);
@@ -246,14 +259,16 @@ impl GitHub {
     /// PATCH repo metadata (description / homepage). `body` is the raw JSON patch.
     pub async fn patch_repo(&self, owner: &str, name: &str, body: serde_json::Value) -> Result<()> {
         let url = format!("{API}/repos/{owner}/{name}");
-        check(self.client.patch(&url).json(&body).send().await?).await?;
+        let resp = self.send_retry(|| self.client.patch(&url).json(&body)).await?;
+        check(resp).await?;
         Ok(())
     }
 
     pub async fn replace_topics(&self, owner: &str, name: &str, topics: &[String]) -> Result<()> {
         let url = format!("{API}/repos/{owner}/{name}/topics");
         let body = serde_json::json!({ "names": topics });
-        check(self.client.put(&url).json(&body).send().await?).await?;
+        let resp = self.send_retry(|| self.client.put(&url).json(&body)).await?;
+        check(resp).await?;
         Ok(())
     }
 
@@ -274,7 +289,8 @@ impl GitHub {
         if let Some(b) = branch {
             body["branch"] = serde_json::Value::String(b.to_string());
         }
-        check(self.client.put(&url).json(&body).send().await?).await?;
+        let resp = self.send_retry(|| self.client.put(&url).json(&body)).await?;
+        check(resp).await?;
         Ok(())
     }
 
@@ -296,7 +312,7 @@ impl GitHub {
     ) -> Result<()> {
         let url = format!("{API}/repos/{owner}/{name}/git/refs");
         let body = serde_json::json!({ "ref": format!("refs/heads/{new_branch}"), "sha": from_sha });
-        let resp = self.client.post(&url).json(&body).send().await?;
+        let resp = self.send_retry(|| self.client.post(&url).json(&body)).await?;
         if resp.status() == StatusCode::UNPROCESSABLE_ENTITY {
             return Ok(()); // branch already exists — reuse it
         }
@@ -316,7 +332,7 @@ impl GitHub {
     ) -> Result<String> {
         let url = format!("{API}/repos/{owner}/{name}/pulls");
         let payload = serde_json::json!({ "title": title, "head": head, "base": base, "body": body });
-        let resp = self.client.post(&url).json(&payload).send().await?;
+        let resp = self.send_retry(|| self.client.post(&url).json(&payload)).await?;
         if resp.status() == StatusCode::UNPROCESSABLE_ENTITY {
             return Ok(format!("https://github.com/{owner}/{name}/pulls (already open)"));
         }
