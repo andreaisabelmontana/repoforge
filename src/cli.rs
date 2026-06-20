@@ -35,6 +35,30 @@ pub enum Command {
     Fix(FixArgs),
     /// Emit a shields.io quality badge (markdown, or endpoint JSON) for repositories.
     Badge(BadgeArgs),
+    /// Create a new repository scaffolded straight to an A grade (README, LICENSE, CI, .gitignore, topics).
+    Init(InitArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct InitArgs {
+    /// Name of the new repository (an `owner/` prefix is ignored — it is created under your account).
+    pub name: String,
+
+    /// Primary language, used to tailor the .gitignore, CI workflow, and README commands.
+    #[arg(long)]
+    pub language: Option<String>,
+
+    /// Repository description.
+    #[arg(long)]
+    pub description: Option<String>,
+
+    /// LICENSE copyright holder (defaults to your login).
+    #[arg(long)]
+    pub holder: Option<String>,
+
+    /// Create the repository as private.
+    #[arg(long)]
+    pub private: bool,
 }
 
 #[derive(Args, Debug)]

@@ -340,6 +340,19 @@ impl GitHub {
         let pr: PrResp = resp.json().await.context("decoding pull request")?;
         Ok(pr.html_url)
     }
+
+    /// Create a new repository for the authenticated user (empty — no auto-init, so the first
+    /// committed file initialises the default branch).
+    pub async fn create_repo(&self, name: &str, description: Option<&str>, private: bool) -> Result<Repo> {
+        let url = format!("{API}/user/repos");
+        let mut body = serde_json::json!({ "name": name, "private": private, "auto_init": false });
+        if let Some(d) = description {
+            body["description"] = serde_json::Value::String(d.to_string());
+        }
+        let resp = self.send_retry(|| self.client.post(&url).json(&body)).await?;
+        let resp = check(resp).await?;
+        resp.json().await.context("decoding created repo")
+    }
 }
 
 #[derive(Deserialize)]

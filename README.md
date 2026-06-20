@@ -50,6 +50,9 @@ repoforge audit --user octocat --format json
 repoforge badge octocat/hello
 repoforge badge octocat/hello --json   # endpoint schema, for a self-updating badge
 
+# Create a brand-new repo already scaffolded to an A grade
+repoforge init my-new-tool --language rust --description "A small fast thing"
+
 # See exactly what would change — nothing is pushed
 repoforge fix --user octocat
 
@@ -101,6 +104,7 @@ tests/
 
 ## Changelog
 
+- **0.7.0** — `init` command: create a new repository already scaffolded to an A grade (README, LICENSE, language-aware `.gitignore` + CI, derived topics, description) in one shot.
 - **0.6.1** — Live GitHub Pages dashboard (`docs/index.html`); the scheduled self-audit workflow now refreshes both the markdown report and the HTML dashboard each week.
 - **0.6.0** — `badge` command: emit a ready-to-paste shields.io quality badge (markdown) or endpoint JSON for one or many repos. (repoforge grades itself **A**.)
 - **0.5.0** — Writes (PUT/PATCH/POST) now retry with backoff on 429, 5xx, and GitHub's 403 + `Retry-After` *secondary* rate-limit response, so large `fix` sweeps don't half-fail.

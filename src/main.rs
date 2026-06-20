@@ -5,7 +5,7 @@ mod cli;
 
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
-use cli::{AuditArgs, BadgeArgs, Cli, Command, FixArgs, Format};
+use cli::{AuditArgs, BadgeArgs, Cli, Command, FixArgs, Format, InitArgs};
 use colored::Colorize;
 use futures::stream::{self, StreamExt};
 use repoforge::audit;
@@ -38,7 +38,63 @@ async fn run() -> Result<()> {
         Command::Audit(args) => audit_cmd(&gh, &cfg, cli.concurrency, args).await,
         Command::Fix(args) => fix_cmd(&gh, &cfg, cli.concurrency, args).await,
         Command::Badge(args) => badge_cmd(&gh, &cfg, cli.concurrency, args).await,
+        Command::Init(args) => init_cmd(&gh, args).await,
     }
+}
+
+/// Create a new repo and scaffold it to an A grade in one shot.
+async fn init_cmd(gh: &GitHub, args: InitArgs) -> Result<()> {
+    let name = args.name.rsplit('/').next().unwrap_or(&args.name).to_string();
+    eprintln!("Creating {}…", name.cyan());
+    let mut repo = gh
+        .create_repo(&name, args.description.as_deref(), args.private)
+        .await?;
+    // The fresh repo has no code yet, so adopt the requested language for generation.
+    if args.language.is_some() {
+        repo.language = args.language.clone();
+    }
+    let owner = repo.owner.login.clone();
+    let lang = repo.language.clone();
+    let snap = Snapshot {
+        repo,
+        paths: Vec::new(),
+        readme: None,
+        tree_truncated: false,
+    };
+
+    let holder = args.holder.as_deref().unwrap_or(owner.as_str());
+    let mut files: Vec<(&str, String)> = vec![
+        ("README.md", remediate::gen_readme(&snap)),
+        ("LICENSE", remediate::gen_mit(holder)),
+        (".gitignore", remediate::gen_gitignore(lang.as_deref())),
+    ];
+    if let Some(ci) = remediate::gen_ci(lang.as_deref()) {
+        files.push((".github/workflows/ci.yml", ci));
+    }
+
+    for (path, contents) in &files {
+        match gh
+            .put_file(&owner, &name, path, &format!("chore: add {path}"), contents, None)
+            .await
+        {
+            Ok(()) => println!("  {} {path}", "added".green()),
+            Err(e) => println!("  {} {path}: {e}", "failed".red()),
+        }
+    }
+
+    let topics = remediate::suggest_topics(&snap);
+    if !topics.is_empty() {
+        match gh.replace_topics(&owner, &name, &topics).await {
+            Ok(()) => println!("  {} topics: {}", "added".green(), topics.join(", ")),
+            Err(e) => println!("  {} topics: {e}", "failed".red()),
+        }
+    }
+
+    println!(
+        "\n{} https://github.com/{owner}/{name}",
+        "created:".green().bold()
+    );
+    Ok(())
 }
 
 async fn badge_cmd(gh: &GitHub, cfg: &Config, concurrency: usize, args: BadgeArgs) -> Result<()> {
