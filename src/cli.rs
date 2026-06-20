@@ -33,6 +33,8 @@ pub enum Command {
     Audit(AuditArgs),
     /// Generate and (optionally) apply the missing pieces for failing checks.
     Fix(FixArgs),
+    /// Emit a shields.io quality badge (markdown, or endpoint JSON) for repositories.
+    Badge(BadgeArgs),
 }
 
 #[derive(Args, Debug)]
@@ -97,6 +99,20 @@ pub struct FixArgs {
 
     #[arg(long)]
     pub include_archived: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct BadgeArgs {
+    /// Repositories as `owner/name`.
+    pub repos: Vec<String>,
+
+    /// Badge every repository owned by this login.
+    #[arg(long)]
+    pub user: Option<String>,
+
+    /// Emit shields.io endpoint JSON (for hosting) instead of ready-to-paste markdown.
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]

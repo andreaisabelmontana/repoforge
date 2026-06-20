@@ -1,5 +1,9 @@
 # repoforge
 
+[![CI](https://github.com/andreaisabelmontana/repoforge/actions/workflows/ci.yml/badge.svg)](https://github.com/andreaisabelmontana/repoforge/actions/workflows/ci.yml)
+![license: MIT](https://img.shields.io/badge/license-MIT-blue)
+![repoforge quality](https://img.shields.io/badge/repoforge-A%20%2895%29-brightgreen)
+
 Audit GitHub repositories against a quality rubric and auto-generate the pieces they're missing — README, license, `.gitignore`, CI workflow, description, and topics. One read-only command grades an entire account; one `--apply` flag fixes it.
 
 Built because a profile with 200+ repos rots one missing README at a time, and fixing that by hand doesn't scale. repoforge makes "every repo meets a bar" a command instead of a chore.
@@ -39,6 +43,10 @@ repoforge audit --user octocat --format html --output dashboard.html
 
 # Machine-readable
 repoforge audit --user octocat --format json
+
+# A ready-to-paste shields.io quality badge for a repo's README
+repoforge badge octocat/hello
+repoforge badge octocat/hello --json   # endpoint schema, for a self-updating badge
 
 # See exactly what would change — nothing is pushed
 repoforge fix --user octocat
@@ -91,6 +99,7 @@ tests/
 
 ## Changelog
 
+- **0.6.0** — `badge` command: emit a ready-to-paste shields.io quality badge (markdown) or endpoint JSON for one or many repos. (repoforge grades itself **A**.)
 - **0.5.0** — Writes (PUT/PATCH/POST) now retry with backoff on 429, 5xx, and GitHub's 403 + `Retry-After` *secondary* rate-limit response, so large `fix` sweeps don't half-fail.
 - **0.4.0** — `--holder` flag to set the LICENSE copyright holder (defaults to the repo owner's login).
 - **0.3.0** — `--pr` mode: apply file fixes via a reviewable pull request on a `repoforge/quality-fixes` branch instead of committing to the default branch.

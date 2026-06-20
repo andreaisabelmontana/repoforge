@@ -5,7 +5,7 @@ mod cli;
 
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
-use cli::{AuditArgs, Cli, Command, FixArgs, Format};
+use cli::{AuditArgs, BadgeArgs, Cli, Command, FixArgs, Format};
 use colored::Colorize;
 use futures::stream::{self, StreamExt};
 use repoforge::audit;
@@ -37,7 +37,22 @@ async fn run() -> Result<()> {
     match cli.command {
         Command::Audit(args) => audit_cmd(&gh, &cfg, cli.concurrency, args).await,
         Command::Fix(args) => fix_cmd(&gh, &cfg, cli.concurrency, args).await,
+        Command::Badge(args) => badge_cmd(&gh, &cfg, cli.concurrency, args).await,
     }
+}
+
+async fn badge_cmd(gh: &GitHub, cfg: &Config, concurrency: usize, args: BadgeArgs) -> Result<()> {
+    let repos = collect_repos(gh, &args.repos, &args.user, false, false).await?;
+    let snaps = snapshot_all(gh, repos, concurrency).await;
+    for snap in &snaps {
+        let a = audit::audit(snap, cfg);
+        if args.json {
+            println!("{}", report::badge_endpoint(&a));
+        } else {
+            println!("{}\n{}\n", a.full_name, report::badge_markdown(&a));
+        }
+    }
+    Ok(())
 }
 
 /// Collect the target repositories from explicit `owner/name` args and/or a `--user` sweep.

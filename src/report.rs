@@ -121,6 +121,43 @@ pub fn json(audits: &[RepoAudit]) -> String {
     serde_json::to_string_pretty(audits).unwrap_or_else(|_| "[]".into())
 }
 
+fn shields_color(g: char) -> &'static str {
+    match g {
+        'A' => "brightgreen",
+        'B' => "green",
+        'C' => "yellow",
+        'D' => "orange",
+        _ => "red",
+    }
+}
+
+/// A ready-to-paste shields.io badge (static) showing a repo's grade and score.
+pub fn badge_markdown(a: &RepoAudit) -> String {
+    let msg = format!("{} ({})", a.grade, a.score);
+    // shields static-badge encoding: space -> %20, ( -> %28, ) -> %29, literal - -> --
+    let enc = msg
+        .replace('-', "--")
+        .replace(' ', "%20")
+        .replace('(', "%28")
+        .replace(')', "%29");
+    format!(
+        "![repoforge quality](https://img.shields.io/badge/repoforge-{enc}-{})",
+        shields_color(a.grade)
+    )
+}
+
+/// shields.io "endpoint" schema JSON — host it (repo file / gist) and reference via
+/// `https://img.shields.io/endpoint?url=<raw-url>` for a badge that updates with the file.
+pub fn badge_endpoint(a: &RepoAudit) -> String {
+    serde_json::json!({
+        "schemaVersion": 1,
+        "label": "repoforge",
+        "message": format!("{} ({})", a.grade, a.score),
+        "color": shields_color(a.grade),
+    })
+    .to_string()
+}
+
 fn esc(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }

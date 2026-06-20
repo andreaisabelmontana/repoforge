@@ -140,6 +140,24 @@ fn topics_derive_from_language_and_name() {
 }
 
 #[test]
+fn badge_reflects_grade() {
+    let snap = Snapshot {
+        repo: repo(),
+        paths: vec![],
+        readme: None,
+        tree_truncated: false,
+    };
+    let now = Utc.with_ymd_and_hms(2024, 6, 1, 0, 0, 0).unwrap();
+    let a = audit::audit_at(&snap, &Config::default(), now); // bare repo -> F
+    let md = report::badge_markdown(&a);
+    assert!(md.contains("img.shields.io/badge/repoforge-"));
+    assert!(md.contains("-red)")); // F is red
+    let json = report::badge_endpoint(&a);
+    assert!(json.contains("\"schemaVersion\":1"));
+    assert!(json.contains("\"color\":\"red\""));
+}
+
+#[test]
 fn html_report_is_self_contained() {
     let snap = Snapshot {
         repo: repo(),
