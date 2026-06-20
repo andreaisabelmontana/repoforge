@@ -1,7 +1,8 @@
 name: Self-audit
 
-# Re-grades the whole account on a schedule and commits the latest report to docs/REPORT.md,
-# so the quality dashboard stays current with zero manual effort.
+# Re-grades the whole account on a schedule and commits the latest report (docs/REPORT.md) plus
+# the live HTML dashboard (docs/index.html), so the GitHub Pages quality dashboard stays current
+# with zero manual effort.
 
 on:
   schedule:
@@ -27,10 +28,12 @@ jobs:
           mkdir -p docs
           ./target/release/repoforge audit --user "${GITHUB_REPOSITORY_OWNER}" \
             --format markdown --output docs/REPORT.md
+          ./target/release/repoforge audit --user "${GITHUB_REPOSITORY_OWNER}" \
+            --format html --output docs/index.html
       - name: Commit report
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/REPORT.md
-          git commit -m "chore: refresh quality report" || echo "no changes"
+          git add docs/REPORT.md docs/index.html
+          git commit -m "chore: refresh quality report + dashboard" || echo "no changes"
           git push
