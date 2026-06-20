@@ -91,6 +91,10 @@ pub struct AuditArgs {
     /// Include archived repositories.
     #[arg(long)]
     pub include_archived: bool,
+
+    /// Exit with a non-zero status if any audited repo scores below this value (a CI gate).
+    #[arg(long)]
+    pub fail_under: Option<u32>,
 }
 
 #[derive(Args, Debug)]

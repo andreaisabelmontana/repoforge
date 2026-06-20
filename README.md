@@ -46,6 +46,9 @@ repoforge audit --user octocat --format html --output dashboard.html
 # Machine-readable
 repoforge audit --user octocat --format json
 
+# Use as a CI quality gate — non-zero exit if any repo scores below 70
+repoforge audit octocat/hello --fail-under 70
+
 # A ready-to-paste shields.io quality badge for a repo's README
 repoforge badge octocat/hello
 repoforge badge octocat/hello --json   # endpoint schema, for a self-updating badge
@@ -107,6 +110,7 @@ tests/
 
 ## Changelog
 
+- **0.9.0** — `audit --fail-under <score>`: exit non-zero when any repo scores below the threshold, so repoforge can gate CI.
 - **0.8.0** — `completions` command: generate shell completion scripts (bash, zsh, fish, powershell, elvish).
 - **0.7.1** — The topics fix now *merges* with existing topics instead of replacing them, so applying it can never delete tags you set by hand.
 - **0.7.0** — `init` command: create a new repository already scaffolded to an A grade (README, LICENSE, language-aware `.gitignore` + CI, derived topics, description) in one shot.

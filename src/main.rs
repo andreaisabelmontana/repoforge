@@ -203,6 +203,25 @@ async fn audit_cmd(gh: &GitHub, cfg: &Config, concurrency: usize, args: AuditArg
     } else {
         println!("{rendered}");
     }
+
+    // CI gate: fail if any repo is below the threshold.
+    if let Some(threshold) = args.fail_under {
+        let below: Vec<&audit::RepoAudit> = audits.iter().filter(|a| a.score < threshold).collect();
+        if !below.is_empty() {
+            for a in &below {
+                eprintln!(
+                    "{} {} scored {} (< {threshold})",
+                    "below:".red().bold(),
+                    a.full_name,
+                    a.score
+                );
+            }
+            return Err(anyhow!(
+                "{} repo(s) below the --fail-under threshold of {threshold}",
+                below.len()
+            ));
+        }
+    }
     Ok(())
 }
 
