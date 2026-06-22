@@ -1,7 +1,7 @@
 # Repository quality report
 
-- Repositories audited: **207**
-- Average score: **69.6/100**
+- Repositories audited: **212**
+- Average score: **70.2/100**
 
 | Repo | Lang | Score | Grade | Top gaps |
 |------|------|------:|:-----:|----------|
@@ -206,6 +206,11 @@
 | `andreaisabelmontana/qrate` | Python | 93 | A | Project structure |
 | `andreaisabelmontana/vigiview` | Python | 93 | A | Project structure |
 | `andreaisabelmontana/linkrot` | Go | 95 | A | Homepage/demo |
+| `andreaisabelmontana/nanograd` | C++ | 95 | A | Homepage/demo |
+| `andreaisabelmontana/parsekit` | TypeScript | 95 | A | Homepage/demo |
+| `andreaisabelmontana/recalc` | Java | 95 | A | Homepage/demo |
+| `andreaisabelmontana/thompson` | C | 95 | A | Homepage/demo |
+| `andreaisabelmontana/tinysql` | Python | 95 | A | Homepage/demo |
 | `andreaisabelmontana/Alma-De-Maria` | HTML | 100 | A | — |
 | `andreaisabelmontana/daybook` | TypeScript | 100 | A | — |
 | `andreaisabelmontana/foodloop-rebuild` | TypeScript | 100 | A | — |
